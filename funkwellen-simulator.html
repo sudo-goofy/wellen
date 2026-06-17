@@ -486,11 +486,27 @@ function interfColor(r){
   if(r<0.5) return mix(INK2,TEAL,r/0.5);
   return mix(TEAL,CORAL,(r-0.5)/0.5);
 }
+// Lautsprecher nach Tonhöhe gruppieren (nur gleiche Tonhöhe interferiert kohärent)
+function soundGroups(){
+  const gmap={};
+  for(const s of S.sources){ if(s.type!=="speaker")continue; const key=Math.round(s.freq); (gmap[key]=gmap[key]||[]).push(s); }
+  return Object.keys(gmap).map(key=>gmap[key].map(s=>({s, k:2*Math.PI/srcLambda(s)})));
+}
+// resultierender Schallpegel (dB) durch Überlagerung der Schalldrücke an Zelle k:
+// gleiche Tonhöhe -> kohärent (Interferenz), verschiedene Tonhöhe -> energetisch addiert
+function soundSplAt(grp,k){
+  let powSum=0;
+  for(let gi=0;gi<grp.length;gi++){
+    let re=0,im=0; const g=grp[gi];
+    for(let i=0;i<g.length;i++){ const e=g[i]; if(!e.s._dbm)continue; const P=Math.pow(10,e.s._dbm[k]/20), th=e.k*e.s._d[k]; re+=P*Math.cos(th); im+=P*Math.sin(th); }
+    powSum+=re*re+im*im;
+  }
+  return 10*Math.log10(powSum+1e-12); // = 20·log10(|Gesamtdruck|)
+}
 
 /* ---------- Feld in Offscreen rendern ---------- */
 function renderField(){
   const d=fimg.data, nC=GW*GH, sources=S.sources;
-  const inter = S.signal==="wlan"; // Co-Channel nur WLAN
   if(S.mode==="wave"){
     const ks=sources.map(s=>2*Math.PI/srcLambda(s));   // Wellenzahl je Quelle
     if(S.interf){
@@ -522,19 +538,23 @@ function renderField(){
         d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=255;
       }
     }
-  }else{
-    const sound=S.signal==="sound";
+  }else if(S.signal==="sound"){
+    // Schall-Abdeckung = echte Druck-Überlagerung -> tote Punkte & laute Zonen sichtbar
+    const grp=soundGroups();
     for(let k=0;k<nC;k++){
       const o=k*4;
       if(!cellInside(k)){d[o+3]=0;continue;}
-      // bestes Signal + zweitbestes gleicher Kanal (Störung)
-      let best=-999,bestCh=null,second=-999;
-      for(let si=0;si<sources.length;si++){
-        const s=sources[si], db=s._dbm[k];
-        if(db>best){second=best;best=db;bestCh=(s.type==="router"?s.band+"#"+s.chan:null);}
-        else if(db>second){second=db;}
-      }
-      const c=coverColor(best,sound);
+      const c=coverColor(soundSplAt(grp,k),true);
+      d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=c[3];
+    }
+  }else{
+    // WLAN-Abdeckung = bestes verfügbares Signal (man verbindet sich mit einem AP)
+    for(let k=0;k<nC;k++){
+      const o=k*4;
+      if(!cellInside(k)){d[o+3]=0;continue;}
+      let best=-999;
+      for(let si=0;si<sources.length;si++){const db=sources[si]._dbm[k]; if(db>best)best=db;}
+      const c=coverColor(best,false);
       d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=c[3];
     }
   }
@@ -654,7 +674,14 @@ function updateMetrics(){
   if(dirty && GW>0) recompute();
   let total=0,good=0,dead=0;
   const thGood=sound?68:-60, thDead=sound?52:-80;
-  for(let k=0;k<GW*GH;k++){if(!cellInside(k))continue;total++;let best=-999;for(const s of S.sources){if(!s._dbm)continue;if(s._dbm[k]>best)best=s._dbm[k];}if(best>=thGood)good++;if(best<thDead)dead++;}
+  const grp=sound?soundGroups():null;
+  for(let k=0;k<GW*GH;k++){
+    if(!cellInside(k))continue; total++;
+    let lvl;
+    if(sound){ lvl=soundSplAt(grp,k); }
+    else { lvl=-999; for(const s of S.sources){if(!s._dbm)continue;if(s._dbm[k]>lvl)lvl=s._dbm[k];} }
+    if(lvl>=thGood)good++; if(lvl<thDead)dead++;
+  }
   const gp=total?Math.round(100*good/total):0, dp=total?Math.round(100*dead/total):0;
   el.innerHTML='<div class="metric"><div class="v" style="color:#2bb3a3">'+gp+'%</div><div class="l">gute Abdeckung</div></div>'+
     '<div class="metric"><div class="v" style="color:#ef6f53">'+dp+'%</div><div class="l">'+(sound?'zu leise':'Funkloch')+'</div></div>';
@@ -675,7 +702,9 @@ function updateLegend(){
   }else{
     el.innerHTML='<div class="legend-grad" style="background:linear-gradient(90deg,#cdc5d6,#e05656,#ef8a53,#f4b942,#58c4a0,#1f9d8f)"></div>'+
       '<div class="legend-scale"><span>'+(sound?'leise':'Funkloch')+'</span><span>'+(sound?'laut':'top')+'</span></div>'+
-      (sound?'':'<div class="legend-row" style="margin-top:9px"><span class="sw" style="background:rgba(239,111,83,.55)"></span> Co-Channel-Störzone</div>');
+      (sound
+        ?'<div class="hint">Die Lautstärke ergibt sich aus der <b>Überlagerung</b> der Boxen: am selben Ton entstehen feste <b>tote Punkte</b> (dunkle/rote Streifen = Auslöschung) und laute Zonen (Verstärkung).</div>'
+        :'<div class="legend-row" style="margin-top:9px"><span class="sw" style="background:rgba(239,111,83,.55)"></span> Co-Channel-Störzone</div>');
   }
 }
 

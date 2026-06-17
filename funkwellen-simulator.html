@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wellen-Werkstatt – Funk & Schall im Raum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#f3ecdd;        /* Hintergrund */
+  --paper:#fbf7ee;        /* Karten hell */
+  --ink:#241f35;          /* fast-schwarz / Konturen */
+  --ink-soft:#4a4360;
+  --coral:#ef6f53;        /* 2,4 GHz / warm */
+  --mustard:#f4b942;      /* Akzent gelb */
+  --teal:#2bb3a3;         /* gut / kalt */
+  --blue:#4f7cff;         /* 5 GHz */
+  --pink:#ef89a6;
+  --violet:#7a6cc9;
+  --shadow:#241f35;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  font-family:"Fredoka", ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+  background:var(--cream);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+  -webkit-tap-highlight-color:transparent;       /* kein graues Aufblitzen beim Tippen */
+  -webkit-user-select:none; user-select:none;    /* kein versehentliches Markieren */
+  -webkit-touch-callout:none;                     /* kein Long-Press-Menü */
+}
+/* dekorative Punkte im Hintergrund */
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:radial-gradient(var(--ink) 1.2px, transparent 1.3px);
+  background-size:26px 26px;opacity:.05;
+}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding:14px;gap:12px}
+
+/* ---------- Kopf ---------- */
+header.top{display:flex;align-items:center;gap:16px;flex:0 0 auto}
+.logo{
+  width:54px;height:54px;border-radius:16px;border:3px solid var(--ink);
+  background:var(--mustard);box-shadow:4px 4px 0 var(--shadow);
+  display:grid;place-items:center;flex:0 0 auto;
+}
+.logo svg{width:34px;height:34px;display:block}
+.title h1{font-size:26px;font-weight:700;margin:0;letter-spacing:.3px;line-height:1}
+.title p{margin:3px 0 0;font-size:14px;color:var(--ink-soft);font-weight:500}
+.top-spacer{flex:1}
+.badge{
+  font-size:12.5px;font-weight:600;color:var(--ink);background:var(--paper);
+  border:3px solid var(--ink);border-radius:999px;padding:7px 14px;box-shadow:3px 3px 0 var(--shadow);
+}
+
+/* ---------- Layout ---------- */
+.main{display:flex;gap:12px;flex:1 1 auto;min-height:0}
+.stagewrap{
+  flex:1 1 auto;min-width:0;position:relative;
+  background:var(--paper);border:3px solid var(--ink);border-radius:22px;
+  box-shadow:6px 6px 0 var(--shadow);overflow:hidden;
+}
+#stage{display:block;width:100%;height:100%;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#stage.dragging{cursor:grabbing}
+.stage-tip{
+  position:absolute;left:14px;bottom:12px;font-size:12.5px;font-weight:500;color:var(--ink-soft);
+  background:rgba(251,247,238,.85);border:2px solid var(--ink);border-radius:12px;padding:6px 11px;
+  pointer-events:none;max-width:62%;
+}
+.mode-pills{position:absolute;top:12px;left:12px;display:flex;gap:8px;flex-wrap:wrap;max-width:calc(100% - 24px)}
+
+/* ---------- Seitenpanel ---------- */
+.panel{
+  flex:0 0 332px;display:flex;flex-direction:column;gap:11px;
+  overflow-y:auto;padding-right:4px;
+}
+.panel::-webkit-scrollbar{width:9px}
+.panel::-webkit-scrollbar-thumb{background:var(--ink);border-radius:9px;border:2px solid var(--cream)}
+.card{
+  background:var(--paper);border:3px solid var(--ink);border-radius:18px;
+  box-shadow:4px 4px 0 var(--shadow);padding:13px 14px;
+}
+.card h2{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 10px;color:var(--ink-soft);font-weight:600}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Buttons / Pills */
+.btn{
+  font-family:inherit;font-size:13.5px;font-weight:600;color:var(--ink);
+  background:var(--paper);border:3px solid var(--ink);border-radius:13px;
+  padding:9px 12px;cursor:pointer;box-shadow:3px 3px 0 var(--shadow);
+  transition:transform .05s ease, box-shadow .05s ease, background .12s;
+  display:inline-flex;align-items:center;gap:7px;line-height:1;user-select:none;
+  touch-action:manipulation;
+}
+.btn:hover{background:#fff}
+.btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--shadow)}
+.btn.active{background:var(--ink);color:var(--paper)}
+.btn.full{flex:1;justify-content:center}
+.btn.sm{padding:7px 10px;font-size:12.5px;border-radius:11px}
+.btn .ico{width:18px;height:18px;display:block}
+.btn.coral.active{background:var(--coral);color:#fff;border-color:var(--ink)}
+.btn.blue.active{background:var(--blue);color:#fff}
+.btn.teal.active{background:var(--teal);color:#fff}
+.btn.violet.active{background:var(--violet);color:#fff}
+.seg{display:flex;border:3px solid var(--ink);border-radius:13px;overflow:hidden;box-shadow:3px 3px 0 var(--shadow)}
+.seg .btn{border:0;border-radius:0;box-shadow:none;background:var(--paper)}
+.seg .btn:active{transform:none}
+.seg .btn.active{background:var(--ink);color:var(--paper)}
+.seg .btn+.btn{border-left:3px solid var(--ink)}
+
+label.fld{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:11px 0 5px}
+input[type=range]{width:100%;accent-color:var(--coral);height:22px}
+select{
+  font-family:inherit;font-size:13px;font-weight:600;color:var(--ink);
+  border:3px solid var(--ink);border-radius:11px;padding:7px 9px;background:var(--paper);
+  box-shadow:3px 3px 0 var(--shadow);cursor:pointer;width:100%;touch-action:manipulation;
+}
+.hint{font-size:12px;color:var(--ink-soft);font-weight:500;line-height:1.4;margin-top:8px}
+
+/* Legende */
+.legend-row{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;margin:7px 0}
+.sw{width:22px;height:14px;border-radius:5px;border:2px solid var(--ink);flex:0 0 auto}
+.legend-grad{height:16px;border-radius:8px;border:2px solid var(--ink);margin:8px 0 4px}
+.legend-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);font-weight:600}
+
+/* Metriken */
+.metrics{display:flex;gap:8px}
+.metric{flex:1;background:var(--cream);border:3px solid var(--ink);border-radius:14px;padding:9px 8px;text-align:center}
+.metric .v{font-size:23px;font-weight:700;line-height:1}
+.metric .l{font-size:10.5px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+/* Lernkarte */
+.learn{background:linear-gradient(180deg,var(--paper),#fff)}
+.learn h3{margin:2px 0 6px;font-size:15px;font-weight:700}
+.pro,.con{font-size:12.7px;font-weight:500;line-height:1.45;display:flex;gap:7px;margin:5px 0}
+.pro b,.con b{font-weight:700}
+.pro .mk{color:var(--teal);font-weight:700}
+.con .mk{color:var(--coral);font-weight:700}
+.chip{display:inline-block;font-size:11px;font-weight:700;border:2px solid var(--ink);border-radius:999px;padding:2px 9px;margin-right:5px}
+
+.warn{
+  display:none;align-items:flex-start;gap:9px;background:#fff3e6;border:3px solid var(--coral);
+  border-radius:14px;padding:10px 12px;font-size:12.5px;font-weight:600;color:#9a3a22;margin-top:4px;
+}
+.warn.show{display:flex}
+
+footer.foot{flex:0 0 auto;font-size:11.5px;color:var(--ink-soft);font-weight:500;text-align:center}
+
+.panel{-webkit-overflow-scrolling:touch}
+
+/* Touch-Geräte: größere Tipp-Flächen */
+@media (pointer:coarse){
+  .btn{padding:13px 15px;font-size:14.5px}
+  .btn.sm{padding:11px 13px;font-size:13.5px}
+  .btn.full{min-height:46px}
+  select{padding:12px 11px;font-size:14.5px;min-height:46px}
+  input[type=range]{height:40px}
+  .legend-row{font-size:14px}
+  .metric{padding:11px 8px}
+}
+
+/* Schmale Schirme / Hochformat (Tablet, Smartphone) */
+@media (max-width:980px){
+  body{overflow:auto}
+  .app{height:auto;padding:12px;gap:10px}
+  header.top{flex-wrap:wrap}
+  .main{flex-direction:column}
+  .stagewrap{height:58vh;min-height:340px}
+  .panel{flex:1 1 auto;max-height:none;overflow:visible;padding-right:0}
+}
+@media (max-width:560px){
+  .title h1{font-size:21px}
+  .title p{font-size:12.5px}
+  .logo{width:46px;height:46px}
+  .top-spacer{display:none}
+  .badge{order:3;width:100%;text-align:center;font-size:11.5px;padding:7px 11px}
+  .stagewrap{height:52vh;min-height:300px}
+  .stage-tip{max-width:none;left:10px;right:10px}
+  footer.foot{font-size:10.5px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="logo" title="Wellen-Werkstatt">
+      <svg viewBox="0 0 100 100" fill="none" stroke="#241f35" stroke-width="8" stroke-linecap="round">
+        <circle cx="50" cy="50" r="7" fill="#241f35" stroke="none"/>
+        <path d="M50 50 m-22 0 a22 22 0 0 1 44 0"/>
+        <path d="M50 50 m-36 0 a36 36 0 0 1 72 0"/>
+      </svg>
+    </div>
+    <div class="title">
+      <h1>Wellen-Werkstatt</h1>
+      <p>Funk- &amp; Schallausbreitung im Raum – von oben betrachtet</p>
+    </div>
+    <div class="top-spacer"></div>
+    <div class="badge" id="planBadge">Grundriss laden …</div>
+  </header>
+
+  <div class="main">
+    <!-- Bühne -->
+    <div class="stagewrap">
+      <div class="mode-pills">
+        <div class="seg">
+          <button class="btn sm active" id="mWave">Wellen</button>
+          <button class="btn sm" id="mCover">Abdeckung</button>
+        </div>
+        <button class="btn sm violet" id="interfBtn">✺ Interferenzmuster</button>
+      </div>
+      <canvas id="stage"></canvas>
+      <div class="stage-tip" id="tip">Quelle ziehen zum Verschieben · tippen zum Auswählen</div>
+    </div>
+
+    <!-- Seitenpanel -->
+    <div class="panel">
+
+      <div class="card">
+        <h2>1 · Grundriss</h2>
+        <div class="row">
+          <button class="btn full" data-plan="berghain">Berghain</button>
+          <button class="btn full" data-plan="buero">Büro</button>
+          <button class="btn full" data-plan="planetarium">Planetarium</button>
+        </div>
+        <label class="fld">Signalart</label>
+        <div class="seg">
+          <button class="btn full coral" id="sWlan">📶 WLAN</button>
+          <button class="btn full teal" id="sSound">🔊 Schall</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>2 · Quellen</h2>
+        <div class="row">
+          <button class="btn full" id="addSrc">+ Quelle aufstellen</button>
+          <button class="btn" id="resetSrc" title="Auf Standard zurücksetzen">↺</button>
+        </div>
+        <div id="srcEdit" style="display:none">
+          <label class="fld" id="bandLabel">Frequenzband</label>
+          <div class="seg" id="bandSeg">
+            <button class="btn full coral active" data-band="2.4">2,4 GHz</button>
+            <button class="btn full blue" data-band="5">5 GHz</button>
+          </div>
+          <div id="chanWrap">
+            <label class="fld">Funk­kanal</label>
+            <select id="chanSel"></select>
+          </div>
+          <div id="freqWrap" style="display:none">
+            <label class="fld">Tonhöhe: <span id="freqVal">120</span> Hz <span id="freqNote" style="color:var(--ink-soft)"></span></label>
+            <input type="range" id="freqRange" min="50" max="700" step="5" value="120">
+          </div>
+          <label class="fld">Sendeleistung: <span id="powVal">100</span> %</label>
+          <input type="range" id="powRange" min="20" max="100" step="5" value="100">
+          <div class="row" style="margin-top:11px">
+            <button class="btn sm full" id="delSrc">Diese Quelle löschen</button>
+          </div>
+        </div>
+        <div class="hint" id="srcHint">Noch keine Quelle ausgewählt. Tippe im Raum auf einen Router bzw. eine Box.</div>
+      </div>
+
+      <div class="card">
+        <h2>3 · Darstellung</h2>
+        <div class="row">
+          <button class="btn" id="playBtn">⏸ Pause</button>
+          <label class="fld" style="margin:0;align-self:center;flex:1">Tempo</label>
+        </div>
+        <input type="range" id="speedRange" min="0" max="3" step="0.1" value="1.2">
+        <div id="legend"></div>
+        <div class="metrics" id="metrics"></div>
+        <div class="warn" id="warnBox"><span>⚠️</span><span id="warnTxt"></span></div>
+      </div>
+
+      <div class="card learn" id="learnCard"></div>
+
+    </div>
+  </div>
+
+  <footer class="foot" id="footNote"></footer>
+</div>
+
+<script>
+"use strict";
+const TOUCH = !!(window.matchMedia && matchMedia("(pointer:coarse)").matches); // grobe Eingabe (Finger)?
+/* =========================================================================
+   Wellen-Werkstatt – eine Datei, kein Build.
+   Modell: Quellen senden Wellen aus, die mit Abstand schwächer werden und
+   beim Durchqueren von Wänden gedämpft werden (dB-Werte je Material).
+   Zwei Ansichten: animierte Wellen (Interferenz) + Abdeckungs-Heatmap.
+   ========================================================================= */
+
+/* ---------- Materialien (Richtwerte für Einweg-Dämpfung in dB) ---------- */
+const MAT = {
+  beton : {name:"Beton",      w24:12, w5:22, snd:24, color:"#b7b1c7"},
+  gips  : {name:"Gipswand",   w24:3,  w5:6,  snd:9,  color:"#d8cdb4"},
+  holz  : {name:"Holztür",    w24:4,  w5:7,  snd:11, color:"#c79a5b"},
+  glas  : {name:"Glas",       w24:3,  w5:8,  snd:6,  color:"#9fd6e6"},
+  metall: {name:"Metall",     w24:26, w5:32, snd:30, color:"#9aa0ad"},
+};
+
+/* ---------- Geometrie-Helfer ---------- */
+const seg=(x1,y1,x2,y2,m)=>({x1,y1,x2,y2,m});
+function rectWalls(x,y,w,h,m){return[seg(x,y,x+w,y,m),seg(x+w,y,x+w,y+h,m),seg(x+w,y+h,x,y+h,m),seg(x,y+h,x,y,m)];}
+function circlePts(cx,cy,r,n){const p=[];for(let i=0;i<n;i++){const a=2*Math.PI*i/n;p.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}return p;}
+function ringWalls(cx,cy,r,n,m){const p=circlePts(cx,cy,r,n);const w=[];for(let i=0;i<n;i++){const a=p[i],b=p[(i+1)%n];w.push(seg(a[0],a[1],b[0],b[1],m));}return w;}
+
+/* ---------- Grundrisse (Maße in Metern) ---------- */
+function buildBuero(){
+  const W=28,H=16;
+  const walls=[...rectWalls(0,0,W,H,"beton")];
+  // Besprechungsraum (Glas) oben links
+  walls.push(seg(11,0,11,5.5,"glas"), seg(0,5.5,11,5.5,"glas"));
+  // Serverraum (Beton) rechts, mit Metalltür -> bleibt Funkloch & wirft Schatten
+  walls.push(seg(22,5,28,5,"beton"), seg(22,11,28,11,"beton"));
+  walls.push(seg(22,5,22,7.45,"beton"), seg(22,7.45,22,8.55,"metall"), seg(22,8.55,22,11,"beton"));
+  // Küche (Trockenbau) unten links, mit Holztür
+  walls.push(seg(0,11.5,3.4,11.5,"gips"), seg(3.4,11.5,4.5,11.5,"holz"), seg(4.5,11.5,8,11.5,"gips"));
+  walls.push(seg(8,11.5,8,16,"gips"));
+  // Fokusraum (Glas-Kabine) in der Mitte
+  walls.push(...rectWalls(14,9,3.5,3.5,"glas"));
+  const labels=[
+    {x:5.5,y:2.6,t:"Besprechung",s:.7},{x:25,y:8,t:"Server",s:.6},
+    {x:4,y:13.8,t:"Küche",s:.7},{x:15.75,y:10.75,t:"Fokus",s:.48},
+    {x:16,y:6.8,t:"Großraumbüro",s:.95}];
+  return {name:"Büro", sub:"Großraumbüro · Glas, Beton & Trockenbau", W,H,
+    defaultSignal:"wlan", outline:[[0,0],[W,0],[W,H],[0,H]], walls, solids:[], labels,
+    defaults:[{x:13,y:7.5,type:"router",band:"2.4",chan:1,pow:1}]};
+}
+function buildBerghain(){
+  const W=32,H=22;
+  const walls=[...rectWalls(0,0,W,H,"beton")];
+  // Bar abgetrennt rechts, mit Durchgang
+  walls.push(seg(24,0,24,8,"beton"), seg(24,12,24,22,"beton"));
+  // 4 Betonpfeiler im Dancefloor
+  const pil=[[8,7],[8,15],[16,7],[16,15]], solids=[];
+  for(const[px,py]of pil){walls.push(...rectWalls(px,py,1.3,1.3,"beton"));solids.push({type:"rect",x:px,y:py,w:1.3,h:1.3,m:"beton"});}
+  return {name:"Berghain", sub:"Großer Saal · Betonpfeiler · Bar", W,H,
+    defaultSignal:"sound", outline:[[0,0],[W,0],[W,H],[0,H]], walls, solids,
+    labels:[{x:13,y:3,t:"Dancefloor",s:1},{x:28,y:3,t:"Bar",s:.85},{x:2.6,y:2.2,t:"PA",s:.7},{x:2.6,y:19.8,t:"PA",s:.7}],
+    defaults:[{x:2.6,y:5,type:"speaker",freq:110,pow:1},{x:2.6,y:17,type:"speaker",freq:110,pow:1}]};
+}
+function buildPlanetarium(){
+  const W=26,H=26,cx=13,cy=13,R=12;
+  const walls=[...ringWalls(cx,cy,R,40,"beton")];        // Kuppelwand
+  walls.push(...ringWalls(cx,cy,2.6,20,"beton"));         // Projektorkern
+  // kleiner Glas-Windfang unten
+  walls.push(seg(10.5,24.7,10.5,21.5,"glas"), seg(15.5,24.7,15.5,21.5,"glas"));
+  const solids=[{type:"circle",x:cx,y:cy,r:2.6,m:"beton"}];
+  const outline=circlePts(cx,cy,R,48);
+  return {name:"Planetarium", sub:"Runder Kuppelsaal · Projektorkern", W,H,
+    defaultSignal:"wlan", outline, walls, solids, holes:[{x:cx,y:cy,r:2.6}],
+    labels:[{x:13,y:13,t:"Projektor",s:.6},{x:13,y:5.5,t:"Kuppelsaal",s:.9}],
+    defaults:[{x:13,y:6.5,type:"router",band:"2.4",chan:6,pow:1}]};
+}
+const PLANS={buero:buildBuero(), berghain:buildBerghain(), planetarium:buildPlanetarium()};
+
+/* ---------- Zustand ---------- */
+const S={
+  planKey:"berghain", plan:null, signal:"sound",
+  mode:"wave",            // 'wave' | 'cover'
+  interf:false,           // im Wellenmodus: statisches Interferenzmuster statt Bewegung
+  playing:true, t:0, speed:1.2,
+  sources:[], selId:null, nextId:1,
+  // Anzeige-Wellenlängen (zur Sichtbarkeit übertrieben; Verhältnis 2,4:5 = 2:1 korrekt)
+  lambda24:2.2, lambda5:1.1, vVis:5,
+};
+const CHANNELS={ "2.4":[1,6,11], "5":[36,40,44,48,149,153] };
+
+/* ---------- Canvas ---------- */
+const stage=document.getElementById("stage");
+const ctx=stage.getContext("2d");
+let DPR=1, VW=0, VH=0;          // Anzeige-Pixel
+let TF={scale:1,ox:0,oy:0};     // Welt->Bildschirm
+// Feld-Offscreen (grobes Gitter)
+const fcan=document.createElement("canvas");
+const fctx=fcan.getContext("2d");
+let GW=0,GH=0,cellM=1,cellX=null,cellY=null,fimg=null;
+
+function resize(){
+  const r=stage.parentElement.getBoundingClientRect();
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  VW=Math.max(320,r.width); VH=Math.max(280,r.height);
+  stage.width=VW*DPR; stage.height=VH*DPR;
+  stage.style.width=VW+"px"; stage.style.height=VH+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  computeTransform();
+}
+function computeTransform(){
+  if(!S.plan)return;
+  const p=S.plan, pad=26;
+  const sx=(VW-2*pad)/p.W, sy=(VH-2*pad)/p.H, s=Math.min(sx,sy);
+  TF.scale=s; TF.ox=(VW-p.W*s)/2; TF.oy=(VH-p.H*s)/2;
+}
+const wx2sx=x=>TF.ox+x*TF.scale, wy2sy=y=>TF.oy+y*TF.scale;
+const sx2wx=x=>(x-TF.ox)/TF.scale, sy2wy=y=>(y-TF.oy)/TF.scale;
+
+/* ---------- Gitter für Feldberechnung ---------- */
+function buildGrid(){
+  // Auf kleinen Schirmen gröbere Auflösung -> flüssiges Ziehen
+  const p=S.plan, target=(innerWidth<=980?116:156), maxW=Math.max(p.W,p.H);
+  cellM=maxW/target; GW=Math.ceil(p.W/cellM); GH=Math.ceil(p.H/cellM);
+  fcan.width=GW; fcan.height=GH;
+  fimg=fctx.createImageData(GW,GH);
+  cellX=new Float32Array(GW*GH); cellY=new Float32Array(GW*GH);
+  for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const k=j*GW+i;cellX[k]=(i+0.5)*cellM;cellY[k]=(j+0.5)*cellM;}
+}
+
+/* ---------- Punkt-in-Polygon & Loch ---------- */
+function inPoly(x,y,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];if(((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))c=!c;}return c;}
+function inHole(x,y){const hs=S.plan.holes;if(!hs)return false;for(const h of hs){if((x-h.x)**2+(y-h.y)**2<h.r*h.r)return true;}return false;}
+function cellInside(k){return inPoly(cellX[k],cellY[k],S.plan.outline)&&!inHole(cellX[k],cellY[k]);}
+
+/* ---------- Segment-Schnitt (für Wanddämpfung) ---------- */
+function ccw(ax,ay,bx,by,cx,cy){return (cy-ay)*(bx-ax)>(by-ay)*(cx-ax);}
+function segInt(ax,ay,bx,by,cx,cy,dx,dy){
+  return ccw(ax,ay,cx,cy,dx,dy)!==ccw(bx,by,cx,cy,dx,dy) && ccw(ax,ay,bx,by,cx,cy)!==ccw(ax,ay,bx,by,dx,dy);
+}
+
+/* ---------- Physik-Parameter je Quelle ---------- */
+const TX_ROUTER=17; // Sendeleistung Router in dBm (typischer Heim-AP)
+function srcLambda(s){ // Anzeige-Wellenlänge (m)
+  if(s.type==="router") return s.band==="5"?S.lambda5:S.lambda24;
+  return Math.max(0.45, 343/(s.freq||120)); // Schall: echte Wellenlänge
+}
+function wallLossDb(s,wall){
+  const m=MAT[wall.m];
+  if(s.type==="speaker") return m.snd;
+  return s.band==="5"?m.w5:m.w24;
+}
+function freqMHz(s){ return s.band==="5"?5200:2400; }
+function refDist(s){ // Abstand-Skala für Wellenamplitude
+  if(s.type==="speaker") return 5;
+  return s.band==="5"?3.4:6.0;
+}
+
+/* ---------- Felder vorberechnen (nur bei Änderung) ---------- */
+let dirty=true;
+function markDirty(){dirty=true;}
+function recompute(){
+  const walls=S.plan.walls, nC=GW*GH;
+  for(const s of S.sources){
+    if(!s._d||s._d.length!==nC){s._d=new Float32Array(nC);s._loss=new Float32Array(nC);s._amp=new Float32Array(nC);s._dbm=new Float32Array(nC);}
+    const fM=freqMHz(s), rd=refDist(s);
+    for(let k=0;k<nC;k++){
+      const dx=cellX[k]-s.x, dy=cellY[k]-s.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      // Wände auf der Sichtlinie zählen
+      let loss=0;
+      for(let w=0;w<walls.length;w++){const wl=walls[w];if(segInt(s.x,s.y,cellX[k],cellY[k],wl.x1,wl.y1,wl.x2,wl.y2))loss+=wallLossDb(s,wl);}
+      s._d[k]=d; s._loss[k]=loss;
+      // Wellenamplitude (linear, gedämpft)
+      const dampLin=Math.pow(10,-loss/20);
+      s._amp[k]= s.pow * (1/(1+d/rd)) * dampLin;
+      // Empfangspegel in dB
+      if(s.type==="speaker"){
+        s._dbm[k]= 105 + 10*Math.log10(s.pow+0.0001) - 20*Math.log10(Math.max(1,d)) - 11 - loss; // SPL
+      }else{
+        const fspl=20*Math.log10(Math.max(1,d))+20*Math.log10(fM)-27.55;
+        const txP=TX_ROUTER + 10*Math.log10(s.pow+1e-4); // dBm, Leistung in dB skaliert
+        s._dbm[k]= txP - fspl - loss; // RSSI in dBm
+      }
+    }
+  }
+  dirty=false;
+}
+
+/* ---------- Farbpaletten ---------- */
+function lerp(a,b,t){return a+(b-a)*t;}
+function mix(c1,c2,t){return[Math.round(lerp(c1[0],c2[0],t)),Math.round(lerp(c1[1],c2[1],t)),Math.round(lerp(c1[2],c2[2],t))];}
+const CREAM=[243,236,221], CORAL=[239,111,83], TEAL=[43,179,163], BLUE=[79,124,255], NAVY=[36,31,53];
+// Abdeckungsstufen
+function coverColor(dbm,sound){
+  // gibt [r,g,b,a]
+  const t=[[ -52,[31,157,143]],[ -60,[88,196,160]],[ -67,[244,185,66]],[ -74,[239,138,83]],[ -82,[224,86,86]]];
+  const ts=[[ 88,[31,157,143]],[ 78,[88,196,160]],[ 68,[244,185,66]],[ 58,[239,138,83]],[ 48,[224,86,86]]];
+  const tab=sound?ts:t;
+  for(const[th,c]of tab){ if(dbm>=th) return [c[0],c[1],c[2],235]; }
+  return [205,197,214,150]; // kein/sehr schwaches Signal
+}
+const INK2=[26,22,42];
+// Interferenz-Stärke r (0=Auslöschung .. 1=volle Verstärkung) -> Farbe
+function interfColor(r){
+  if(r<0.5) return mix(INK2,TEAL,r/0.5);
+  return mix(TEAL,CORAL,(r-0.5)/0.5);
+}
+
+/* ---------- Feld in Offscreen rendern ---------- */
+function renderField(){
+  const d=fimg.data, nC=GW*GH, sources=S.sources;
+  const inter = S.signal==="wlan"; // Co-Channel nur WLAN
+  if(S.mode==="wave"){
+    const ks=sources.map(s=>2*Math.PI/srcLambda(s));   // Wellenzahl je Quelle
+    if(S.interf){
+      // Statisches Interferenzmuster: normierte Schwingungsstärke
+      for(let k=0;k<nC;k++){
+        const o=k*4;
+        if(!cellInside(k)){d[o+3]=0;continue;}
+        let re=0,im=0,sum=0;
+        for(let si=0;si<sources.length;si++){
+          const a=sources[si]._amp[k], th=ks[si]*sources[si]._d[k];
+          re+=a*Math.cos(th); im+=a*Math.sin(th); sum+=a;
+        }
+        const r = sum>1e-6 ? Math.min(1,Math.sqrt(re*re+im*im)/sum) : 0;
+        const c=interfColor(r);
+        d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=255;
+      }
+    }else{
+      const scale=0.55;
+      for(let k=0;k<nC;k++){
+        const o=k*4;
+        if(!cellInside(k)){d[o+3]=0;continue;}
+        let v=0;
+        for(let si=0;si<sources.length;si++){
+          v += sources[si]._amp[k]*Math.sin(ks[si]*(sources[si]._d[k]-S.vVis*S.t));
+        }
+        let tt=v/scale; if(tt>1)tt=1; else if(tt<-1)tt=-1;
+        let c;
+        if(tt>=0) c=mix(CREAM,CORAL,tt); else c=mix(CREAM,TEAL,-tt);
+        d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=255;
+      }
+    }
+  }else{
+    const sound=S.signal==="sound";
+    for(let k=0;k<nC;k++){
+      const o=k*4;
+      if(!cellInside(k)){d[o+3]=0;continue;}
+      // bestes Signal + zweitbestes gleicher Kanal (Störung)
+      let best=-999,bestCh=null,second=-999;
+      for(let si=0;si<sources.length;si++){
+        const s=sources[si], db=s._dbm[k];
+        if(db>best){second=best;best=db;bestCh=(s.type==="router"?s.band+"#"+s.chan:null);}
+        else if(db>second){second=db;}
+      }
+      const c=coverColor(best,sound);
+      d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=c[3];
+    }
+  }
+  fctx.putImageData(fimg,0,0);
+}
+
+/* ---------- Hauptzeichnung ---------- */
+function draw(){
+  ctx.clearRect(0,0,VW,VH);
+  const p=S.plan;
+  // Raum-Hintergrund (Bodenfläche)
+  ctx.save();
+  outlinePath(); ctx.fillStyle="#fbf7ee"; ctx.fill(); ctx.clip();
+  // Feld
+  ctx.imageSmoothingEnabled=true;
+  ctx.globalAlpha=S.mode==="wave"?0.96:0.92;
+  ctx.drawImage(fcan,0,0,GW,GH, TF.ox,TF.oy, p.W*TF.scale, p.H*TF.scale);
+  ctx.globalAlpha=1;
+  ctx.restore();
+
+  // Co-Channel-Störzonen markieren (nur WLAN/Abdeckung)
+  if(S.mode==="cover" && S.signal==="wlan") drawInterferenceZones();
+
+  // Wände
+  drawWalls();
+  // massive Körper (Pfeiler/Kern)
+  for(const so of p.solids){
+    ctx.fillStyle=MAT[so.m].color; ctx.strokeStyle="#241f35"; ctx.lineWidth=3;
+    if(so.type==="rect"){const x=wx2sx(so.x),y=wy2sy(so.y),w=so.w*TF.scale,h=so.h*TF.scale;rrect(x,y,w,h,5);ctx.fill();ctx.stroke();}
+    else{ctx.beginPath();ctx.arc(wx2sx(so.x),wy2sy(so.y),so.r*TF.scale,0,7);ctx.fill();ctx.stroke();}
+  }
+  // Raumkontur (dick)
+  ctx.save(); outlinePath(); ctx.lineWidth=5; ctx.strokeStyle="#241f35"; ctx.lineJoin="round"; ctx.stroke(); ctx.restore();
+  // Beschriftungen
+  ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="rgba(36,31,53,.55)";
+  for(const l of p.labels){ctx.font="600 "+(13*l.s+5)+"px Fredoka, sans-serif";ctx.fillText(l.t.toUpperCase(),wx2sx(l.x),wy2sy(l.y));}
+  // Quellen
+  for(const s of S.sources) drawSource(s);
+}
+function outlinePath(){const o=S.plan.outline;ctx.beginPath();ctx.moveTo(wx2sx(o[0][0]),wy2sy(o[0][1]));for(let i=1;i<o.length;i++)ctx.lineTo(wx2sx(o[i][0]),wy2sy(o[i][1]));ctx.closePath();}
+function rrect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function drawWalls(){
+  const tw=Math.max(4,0.34*TF.scale);
+  ctx.lineCap="round";
+  for(const w of S.plan.walls){
+    const m=MAT[w.m];
+    ctx.strokeStyle=m.color; ctx.lineWidth=tw+3;
+    ctx.beginPath();ctx.moveTo(wx2sx(w.x1),wy2sy(w.y1));ctx.lineTo(wx2sx(w.x2),wy2sy(w.y2));ctx.stroke();
+    if(w.m==="holz"||w.m==="glas"){ // Tür/Glas zusätzlich dünn umranden
+      ctx.strokeStyle="rgba(36,31,53,.5)"; ctx.lineWidth=Math.max(1,tw*0.4);
+      ctx.beginPath();ctx.moveTo(wx2sx(w.x1),wy2sy(w.y1));ctx.lineTo(wx2sx(w.x2),wy2sy(w.y2));ctx.stroke();
+    }
+  }
+}
+function drawInterferenceZones(){
+  // Zellen, in denen zwei Quellen gleichen Bands+Kanals stark & ähnlich sind
+  const routers=S.sources.filter(s=>s.type==="router");
+  if(routers.length<2) {setWarn(false);return;}
+  ctx.save(); outlinePath(); ctx.clip();
+  let zoneCells=0,total=0;
+  const sw=(S.plan.W*TF.scale)/GW, sh=(S.plan.H*TF.scale)/GH;
+  ctx.fillStyle="rgba(239,111,83,.30)";
+  for(let k=0;k<GW*GH;k++){
+    if(!cellInside(k))continue; total++;
+    // top-2 gleicher Kanal
+    const byCh={};
+    for(const s of routers){const key=s.band+"#"+s.chan;(byCh[key]=byCh[key]||[]).push(s._dbm[k]);}
+    let zone=false;
+    for(const key in byCh){const a=byCh[key];if(a.length<2)continue;a.sort((x,y)=>y-x);if(a[0]>-78 && (a[0]-a[1])<6){zone=true;break;}}
+    if(zone){zoneCells++;const i=k%GW,j=(k/GW|0);ctx.fillRect(TF.ox+i*sw,TF.oy+j*sh,sw+1,sh+1);}
+  }
+  ctx.restore();
+  // gleiche Kanäle vorhanden? (für lesbare Warnung)
+  const cnt={}; for(const s of routers){const key=(s.band==="5"?"5 GHz":"2,4 GHz")+" · Kanal "+s.chan; cnt[key]=(cnt[key]||0)+1;}
+  const clashing=Object.keys(cnt).filter(k=>cnt[k]>1);
+  setWarn(clashing.length>0, "Mehrere Router senden auf "+clashing.join(" und ")+". In den rot schraffierten Zonen stören sie sich gegenseitig (Co-Channel-Interferenz). Tipp: verschiedene Kanäle wählen (2,4 GHz: 1 · 6 · 11).");
+}
+function drawSource(s){
+  const x=wx2sx(s.x), y=wy2sy(s.y), sel=(s.id===S.selId);
+  // Auswahl-Halo
+  if(sel){ctx.beginPath();ctx.arc(x,y,TOUCH?27:22,0,7);ctx.fillStyle="rgba(244,185,66,.9)";ctx.fill();ctx.lineWidth=3;ctx.strokeStyle="#241f35";ctx.stroke();}
+  // Körper
+  ctx.save();ctx.translate(x,y);if(TOUCH)ctx.scale(1.25,1.25);
+  ctx.lineWidth=3; ctx.strokeStyle="#241f35";
+  if(s.type==="router"){
+    ctx.fillStyle=s.band==="5"?"#4f7cff":"#ef6f53";
+    rrect(-15,-9,30,18,6);ctx.fill();ctx.stroke();
+    // Antennen
+    ctx.beginPath();ctx.moveTo(-7,-9);ctx.lineTo(-7,-19);ctx.moveTo(7,-9);ctx.lineTo(7,-19);ctx.stroke();
+    ctx.fillStyle="#241f35";ctx.beginPath();ctx.arc(-7,-20,2.6,0,7);ctx.arc(7,-20,2.6,0,7);ctx.fill();
+    // LED
+    ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(0,0,3,0,7);ctx.fill();
+  }else{
+    ctx.fillStyle="#241f35";ctx.beginPath();ctx.arc(0,0,15,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle="#f4b942";ctx.beginPath();ctx.arc(0,0,8,0,7);ctx.fill();
+    ctx.fillStyle="#fbf7ee";ctx.beginPath();ctx.arc(0,0,3.3,0,7);ctx.fill();
+  }
+  ctx.restore();
+  // Label unter Quelle
+  ctx.font="600 11px Fredoka, sans-serif";ctx.textAlign="center";ctx.textBaseline="top";
+  ctx.fillStyle="#241f35";
+  const tag=s.type==="router"?(s.band==="5"?"5 GHz · K"+s.chan:"2,4 GHz · K"+s.chan):(Math.round(s.freq)+" Hz");
+  const tw=ctx.measureText(tag).width;
+  ctx.fillStyle="rgba(251,247,238,.92)";rrect(x-tw/2-5,y+24,tw+10,15,7);ctx.fill();
+  ctx.strokeStyle="#241f35";ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle="#241f35";ctx.fillText(tag,x,y+26);
+}
+
+/* ---------- Metriken ---------- */
+function updateMetrics(){
+  const el=document.getElementById("metrics"); const sound=S.signal==="sound";
+  if(S.mode!=="cover"){
+    el.innerHTML='<div class="metric"><div class="v">'+S.sources.length+'</div><div class="l">Quellen</div></div>'+
+      '<div class="metric"><div class="v">'+(sound?'λ':'~λ')+'</div><div class="l">'+(sound?'Schallwellen':'Funkwellen')+'</div></div>';
+    return;
+  }
+  if(dirty && GW>0) recompute();
+  let total=0,good=0,dead=0;
+  const thGood=sound?68:-60, thDead=sound?52:-80;
+  for(let k=0;k<GW*GH;k++){if(!cellInside(k))continue;total++;let best=-999;for(const s of S.sources){if(!s._dbm)continue;if(s._dbm[k]>best)best=s._dbm[k];}if(best>=thGood)good++;if(best<thDead)dead++;}
+  const gp=total?Math.round(100*good/total):0, dp=total?Math.round(100*dead/total):0;
+  el.innerHTML='<div class="metric"><div class="v" style="color:#2bb3a3">'+gp+'%</div><div class="l">gute Abdeckung</div></div>'+
+    '<div class="metric"><div class="v" style="color:#ef6f53">'+dp+'%</div><div class="l">'+(sound?'zu leise':'Funkloch')+'</div></div>';
+}
+function setWarn(show,txt){const w=document.getElementById("warnBox");w.classList.toggle("show",!!show);if(txt)document.getElementById("warnTxt").textContent=txt;}
+
+/* ---------- Legende ---------- */
+function updateLegend(){
+  const el=document.getElementById("legend"); const sound=S.signal==="sound";
+  if(S.mode==="wave" && S.interf){
+    el.innerHTML='<div class="legend-grad" style="background:linear-gradient(90deg,#1a162a,#2bb3a3,#ef6f53)"></div>'+
+      '<div class="legend-scale"><span>Auslöschung</span><span>Verstärkung</span></div>'+
+      '<div class="hint"><b>Interferenzmuster</b> (stehendes Bild): <b>dunkle Linien</b> = die Wellen löschen sich aus → <b>tote Punkte</b> (leise / Funkloch). <b>Helle Zonen</b> = sie verstärken sich. Erst mit <b>zwei</b> Quellen sichtbar.</div>';
+  }else if(S.mode==="wave"){
+    el.innerHTML='<div class="legend-grad" style="background:linear-gradient(90deg,#2bb3a3,#f3ecdd,#ef6f53)"></div>'+
+      '<div class="legend-scale"><span>Wellental</span><span>Ruhe</span><span>Wellenberg</span></div>'+
+      '<div class="hint">Treffen zwei Wellen aufeinander, <b>überlagern</b> sie sich: Berg+Berg = Verstärkung, Berg+Tal = <b>Auslöschung</b> (Funkloch / toter Punkt). Mit <b>✺ Interferenzmuster</b> wird das stehende Bild sichtbar.</div>';
+  }else{
+    el.innerHTML='<div class="legend-grad" style="background:linear-gradient(90deg,#cdc5d6,#e05656,#ef8a53,#f4b942,#58c4a0,#1f9d8f)"></div>'+
+      '<div class="legend-scale"><span>'+(sound?'leise':'Funkloch')+'</span><span>'+(sound?'laut':'top')+'</span></div>'+
+      (sound?'':'<div class="legend-row" style="margin-top:9px"><span class="sw" style="background:rgba(239,111,83,.55)"></span> Co-Channel-Störzone</div>');
+  }
+}
+
+/* ---------- Lernkarte ---------- */
+function updateLearn(){
+  const el=document.getElementById("learnCard");
+  if(S.signal==="wlan"){
+    const sel=getSel();
+    el.innerHTML='<h2>Lernkarte · 2,4 GHz vs. 5 GHz</h2>'+
+      '<div style="display:flex;gap:8px;margin-bottom:9px"><span class="chip" style="background:#ef6f53;color:#fff">2,4 GHz</span><span class="chip" style="background:#4f7cff;color:#fff">5 GHz</span></div>'+
+      '<h3 style="color:#c0492f">2,4 GHz</h3>'+
+      '<div class="pro"><span class="mk">+</span><span><b>Große Reichweite</b>, kommt besser durch Wände (geringere Dämpfung).</span></div>'+
+      '<div class="con"><span class="mk">–</span><span>Nur <b>3 störungsfreie Kanäle</b> (1·6·11), oft überfüllt (Bluetooth, Mikrowelle, Nachbar-WLAN) → Störungen, langsamer.</span></div>'+
+      '<h3 style="color:#2f4fb0;margin-top:11px">5 GHz</h3>'+
+      '<div class="pro"><span class="mk">+</span><span><b>Hohe Datenrate</b>, viele Kanäle → kaum Interferenz.</span></div>'+
+      '<div class="con"><span class="mk">–</span><span><b>Geringere Reichweite</b>, Wände dämpfen stärker → in entfernten Ecken und hinter Beton/Glas schnell weg.</span></div>'+
+      '<div class="hint">Probiere: in <b>Abdeckung</b> dieselbe Quelle auf 5 GHz stellen – die grüne Fläche schrumpft, hinter dem Beton-Serverraum bleibt es rot. Stelle 2 Router auf <b>gleichen Kanal</b> → Störzonen erscheinen.</div>';
+  }else{
+    el.innerHTML='<h2>Lernkarte · Schall &amp; Interferenz</h2>'+
+      '<h3>Wellen überlagern sich</h3>'+
+      '<div class="pro"><span class="mk">+</span><span>Zwei Boxen am selben Ton: dort wo <b>Berg auf Berg</b> trifft, wird es <b>lauter</b>.</span></div>'+
+      '<div class="con"><span class="mk">–</span><span>Wo <b>Berg auf Tal</b> trifft, <b>löschen</b> sich die Wellen aus → <b>tote Punkte</b> (man hört fast nichts).</span></div>'+
+      '<div class="pro"><span class="mk">·</span><span><b>λ = v / f</b> · Schall ≈ 343 m/s. Tiefe Töne = lange Wellen (große Muster), hohe Töne = kurze Wellen (dichtes Muster).</span></div>'+
+      '<div class="hint">Probiere: zwei Boxen aufstellen, Tonhöhe ändern – beobachte, wie die Auslöschungs-Streifen wandern. In Ecken sammelt sich der Bass.</div>';
+  }
+}
+function getSel(){return S.sources.find(s=>s.id===S.selId)||null;}
+
+/* ---------- Quellen verwalten ---------- */
+function addSource(x,y){
+  const def=S.signal==="wlan"
+    ? {type:"router",band:"2.4",chan:1,pow:1}
+    : {type:"speaker",freq:120,pow:1};
+  const s=Object.assign({id:S.nextId++,x,y},def);
+  S.sources.push(s); S.selId=s.id; markDirty(); syncEdit();
+}
+function deleteSel(){S.sources=S.sources.filter(s=>s.id!==S.selId);S.selId=null;markDirty();syncEdit();}
+function resetSources(){
+  S.sources=[]; S.nextId=1;
+  for(const d of S.plan.defaults){
+    if(S.signal==="wlan" && d.type==="speaker") S.sources.push({id:S.nextId++,x:d.x,y:d.y,type:"router",band:"2.4",chan:1,pow:1});
+    else if(S.signal==="sound" && d.type==="router") S.sources.push({id:S.nextId++,x:d.x,y:d.y,type:"speaker",freq:120,pow:1});
+    else S.sources.push(Object.assign({id:S.nextId++},d));
+  }
+  S.selId=S.sources[0]?S.sources[0].id:null; markDirty(); syncEdit();
+}
+function convertSourcesTo(signal){
+  for(const s of S.sources){
+    if(signal==="wlan" && s.type==="speaker"){s.type="router";s.band="2.4";s.chan=1;delete s.freq;}
+    else if(signal==="sound" && s.type==="router"){s.type="speaker";s.freq=120;delete s.band;delete s.chan;}
+  }
+  markDirty();
+}
+
+/* ---------- UI-Synchronisierung ---------- */
+function syncEdit(){
+  const s=getSel(), box=document.getElementById("srcEdit"), hint=document.getElementById("srcHint");
+  if(!s){box.style.display="none";hint.style.display="block";}
+  else{
+    box.style.display="block";hint.style.display="none";
+    const isR=s.type==="router";
+    document.getElementById("bandSeg").style.display=isR?"flex":"none";
+    document.getElementById("chanWrap").style.display=isR?"block":"none";
+    document.getElementById("freqWrap").style.display=isR?"none":"block";
+    document.getElementById("bandLabel").textContent=isR?"Frequenzband":"";
+    if(isR){
+      document.querySelectorAll("#bandSeg .btn").forEach(b=>b.classList.toggle("active",b.dataset.band===s.band));
+      fillChannels(s);
+    }else{
+      const f=Math.round(s.freq);document.getElementById("freqRange").value=f;document.getElementById("freqVal").textContent=f;
+      document.getElementById("freqNote").textContent="(λ≈"+(343/f).toFixed(2)+" m)";
+    }
+    document.getElementById("powRange").value=Math.round(s.pow*100);
+    document.getElementById("powVal").textContent=Math.round(s.pow*100);
+  }
+  updateLearn();
+}
+function fillChannels(s){
+  const sel=document.getElementById("chanSel");sel.innerHTML="";
+  for(const c of CHANNELS[s.band]){const o=document.createElement("option");o.value=c;o.textContent="Kanal "+c;if(c===s.chan)o.selected=true;sel.appendChild(o);}
+  if(CHANNELS[s.band].indexOf(s.chan)<0){s.chan=CHANNELS[s.band][0];sel.value=s.chan;}
+}
+
+/* ---------- Grundriss / Signal wechseln ---------- */
+function loadPlan(key){
+  S.planKey=key; S.plan=PLANS[key];
+  S.signal=S.plan.defaultSignal;
+  document.getElementById("planBadge").textContent=S.plan.name+" · "+S.plan.sub;
+  document.querySelectorAll("[data-plan]").forEach(b=>b.classList.toggle("active",b.dataset.plan===key));
+  computeTransform(); buildGrid(); resetSources(); syncSignalButtons(); updateLegend(); updateLearn(); updateFoot();
+}
+function setSignal(sig){
+  S.signal=sig; convertSourcesTo(sig); syncSignalButtons(); syncEdit(); updateLegend(); updateLearn(); markDirty();
+}
+function syncSignalButtons(){
+  document.getElementById("sWlan").classList.toggle("active",S.signal==="wlan");
+  document.getElementById("sSound").classList.toggle("active",S.signal==="sound");
+}
+function updateFoot(){
+  document.getElementById("footNote").innerHTML=
+    "Vereinfachtes Modell für den Unterricht · Dämpfungswerte = Richtwerte · Funk-Wellenlängen zur Sichtbarkeit vergrößert (Verhältnis 2,4 GHz : 5 GHz = 2 : 1 korrekt) · Schall-Wellenlängen maßstäblich (λ = 343 m/s ÷ f)";
+}
+
+/* ---------- Interaktion ---------- */
+let drag=null;
+function pointerPos(e){const r=stage.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function hitSource(px,py){let best=null,bd=TOUCH?40:24;for(const s of S.sources){const d=Math.hypot(px-wx2sx(s.x),py-wy2sy(s.y));if(d<bd){bd=d;best=s;}}return best;}
+stage.addEventListener("pointerdown",e=>{
+  const p=pointerPos(e), s=hitSource(p.x,p.y);
+  if(s){S.selId=s.id;drag={id:s.id,dx:p.x-wx2sx(s.x),dy:p.y-wy2sy(s.y)};stage.classList.add("dragging");stage.setPointerCapture(e.pointerId);syncEdit();}
+  else{S.selId=null;syncEdit();}
+});
+stage.addEventListener("pointermove",e=>{
+  if(!drag)return; const p=pointerPos(e), s=S.sources.find(x=>x.id===drag.id); if(!s)return;
+  let wx=sx2wx(p.x-drag.dx), wy=sy2wy(p.y-drag.dy);
+  // im Grundriss halten
+  wx=Math.max(0.3,Math.min(S.plan.W-0.3,wx)); wy=Math.max(0.3,Math.min(S.plan.H-0.3,wy));
+  s.x=wx; s.y=wy; markDirty();
+});
+stage.addEventListener("pointerup",e=>{drag=null;stage.classList.remove("dragging");});
+stage.addEventListener("dblclick",e=>{const p=pointerPos(e),s=hitSource(p.x,p.y);if(s){S.selId=s.id;deleteSel();}});
+
+// Buttons
+document.querySelectorAll("[data-plan]").forEach(b=>b.addEventListener("click",()=>loadPlan(b.dataset.plan)));
+document.getElementById("sWlan").addEventListener("click",()=>setSignal("wlan"));
+document.getElementById("sSound").addEventListener("click",()=>setSignal("sound"));
+document.getElementById("mWave").addEventListener("click",()=>setMode("wave"));
+document.getElementById("mCover").addEventListener("click",()=>setMode("cover"));
+function setMode(m){S.mode=m;document.getElementById("mWave").classList.toggle("active",m==="wave");document.getElementById("mCover").classList.toggle("active",m==="cover");document.getElementById("interfBtn").style.display=(m==="wave")?"inline-flex":"none";updateLegend();updateMetrics();}
+document.getElementById("interfBtn").addEventListener("click",()=>{S.interf=!S.interf;document.getElementById("interfBtn").classList.toggle("active",S.interf);document.getElementById("tip").textContent=S.interf?"Helle Zonen = Verstärkung · dunkle Linien = tote Punkte (Auslöschung)":"Quelle ziehen zum Verschieben · tippen zum Auswählen";updateLegend();});
+document.getElementById("addSrc").addEventListener("click",()=>addSource(S.plan.W/2,S.plan.H/2));
+document.getElementById("resetSrc").addEventListener("click",resetSources);
+document.getElementById("delSrc").addEventListener("click",deleteSel);
+document.getElementById("playBtn").addEventListener("click",()=>{S.playing=!S.playing;document.getElementById("playBtn").textContent=S.playing?"⏸ Pause":"▶ Start";});
+document.getElementById("speedRange").addEventListener("input",e=>S.speed=parseFloat(e.target.value));
+document.querySelectorAll("#bandSeg .btn").forEach(b=>b.addEventListener("click",()=>{const s=getSel();if(!s)return;s.band=b.dataset.band;fillChannels(s);markDirty();syncEdit();}));
+document.getElementById("chanSel").addEventListener("change",e=>{const s=getSel();if(s){s.chan=parseInt(e.target.value);markDirty();}});
+document.getElementById("freqRange").addEventListener("input",e=>{const s=getSel();if(!s)return;s.freq=parseInt(e.target.value);document.getElementById("freqVal").textContent=s.freq;document.getElementById("freqNote").textContent="(λ≈"+(343/s.freq).toFixed(2)+" m)";markDirty();});
+document.getElementById("powRange").addEventListener("input",e=>{const s=getSel();if(!s)return;s.pow=parseInt(e.target.value)/100;document.getElementById("powVal").textContent=Math.round(s.pow*100);markDirty();});
+window.addEventListener("resize",()=>{resize();});
+
+/* ---------- Animationsschleife ---------- */
+let last=performance.now(), metricTick=0;
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  if(S.playing) S.t+=dt*S.speed;
+  if(dirty) recompute();
+  renderField();
+  draw();
+  if((metricTick++ % 12)===0){updateMetrics();}
+  requestAnimationFrame(loop);
+}
+
+/* ---------- Start ---------- */
+function init(){resize();loadPlan("berghain");setMode("wave");requestAnimationFrame(loop);}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Nur den Wellen-Simulator veröffentlichen.
+# Alle Unterrichtsmaterialien (PDFs, Typst, Bilder, lokale Configs) bleiben lokal.
+/*
+!.gitignore
+!funkwellen-simulator.html
